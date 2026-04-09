@@ -518,6 +518,18 @@ body{display:flex;flex-direction:column;}
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#050505;padding:16px;gap:12px;overflow-y:auto;">
       
       <!-- Format description -->
+      <div style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="font-family:Orbitron,monospace;font-size:9px;color:#444;letter-spacing:2px;margin-bottom:8px;">HOW IT WORKS</div>
+        <div style="display:flex;gap:0;align-items:center;flex-wrap:wrap;gap:4px;">
+          <div style="background:#111;border-radius:5px;padding:6px 10px;font-size:10px;color:#888;text-align:center;">1 RECORD VIDEO<br><span style="color:#444;font-size:9px;">kart on track / pit wall</span></div>
+          <div style="color:#444;font-size:16px;">→</div>
+          <div style="background:#111;border-radius:5px;padding:6px 10px;font-size:10px;color:#888;text-align:center;">2 CHOOSE FORMAT<br><span style="color:#444;font-size:9px;">+ tone + audience</span></div>
+          <div style="color:#444;font-size:16px;">→</div>
+          <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:5px;padding:6px 10px;font-size:10px;color:#44d62d;text-align:center;">3 AI GENERATE<br><span style="color:#2a6a2a;font-size:9px;">caption + script + hook</span></div>
+          <div style="color:#444;font-size:16px;">→</div>
+          <div style="background:#1a0020;border:1px solid #3a0040;border-radius:5px;padding:6px 10px;font-size:10px;color:#c13584;text-align:center;">4 OPEN INSTAGRAM<br><span style="color:#6a1040;font-size:9px;">caption auto-copied</span></div>
+        </div>
+      </div>
       <div id="fmtDesc" style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:12px;border-left:3px solid #44d62d;">
         <div style="font-family:Orbitron,monospace;font-size:10px;color:#44d62d;letter-spacing:2px;margin-bottom:6px;">RACE RESULT</div>
         <div style="font-size:11px;color:#888;line-height:1.7;">After a session — celebrate the best lap, show the data, compare to the record. Short and punchy. Best for Reels cover or Story.</div>
@@ -539,7 +551,10 @@ body{display:flex;flex-direction:column;}
       <div style="background:#111;border:1px solid #1a1a1a;border-radius:8px;padding:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="font-family:Orbitron,monospace;font-size:10px;color:#44d62d;letter-spacing:2px;">CAPTION + HASHTAGS</div>
+          <div style="display:flex;gap:6px;">
           <button class="run-btn" style="padding:5px 12px;font-size:10px;" onclick="copyCaption()">COPY</button>
+          <button class="run-btn" style="padding:5px 12px;font-size:10px;background:#c13584;border:none;" onclick="openInstagram()">OPEN INSTAGRAM</button>
+        </div>
         </div>
         <div id="captionText" style="font-size:12px;color:#ccc;line-height:1.8;white-space:pre-wrap;">Click "AI GENERATE" to create the caption.</div>
       </div>
@@ -1775,6 +1790,23 @@ async function generateContent() {
     document.getElementById('hookText').textContent = 'Error: ' + e.message;
   }
   btn.disabled = false; btn.textContent = 'AI GENERATE';
+}
+
+function openInstagram() {
+  // Copy caption first
+  const text = document.getElementById("captionText").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    // Deep link to Instagram on iOS - opens camera roll
+    // On iOS: instagram:// opens the app
+    // instagram://camera opens camera
+    window.location.href = "instagram://camera";
+    // Fallback after 500ms if app not installed
+    setTimeout(() => {
+      window.open("https://www.instagram.com", "_blank");
+    }, 500);
+  }).catch(() => {
+    window.location.href = "instagram://camera";
+  });
 }
 
 function copyCaption() {
