@@ -513,7 +513,7 @@ body{display:flex;flex-direction:column;}
       <div class="sw-ti" id="tpl-data" onclick="setTpl('data',this)">DATA</div>
     </div>
     <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
-      <label style="background:#111;border:1px solid #b59e60;color:#b59e60;font-family:Orbitron,monospace;font-size:10px;font-weight:700;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:1px;">ADD VIDEO<input type="file" id="swVideo" accept="video/*" style="display:none;"></label>
+      <label style="background:#111;border:1px solid #b59e60;color:#b59e60;font-family:Orbitron,monospace;font-size:10px;font-weight:700;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:1px;">ADD VIDEO<input type="file" id="swVideo" accept="video/*" style="display:none;"></label><span id="swDurLbl" style="font-size:10px;color:#555;letter-spacing:1px;">8s default</span>
       <button class="run-btn" style="background:#b59e60;color:#2a2829;border:none;" onclick="previewAnim()">PREVIEW</button>
       <button class="run-btn" style="background:#263a99;" onclick="exportVideo()" id="expBtn">EXPORT MP4</button>
     </div>
@@ -1790,7 +1790,22 @@ JC_IMG.src = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJ
 let swTpl='result',swAnim='slide',swAccent='#b59e60';
 let swFrame=0,swPlaying=false,swRaf=null,swVideoEl=null;
 let swTone_='hype',swLang_='en';
-const SW_FPS=30,SW_DUR=8,SW_TOTAL=240,SW_SPONSOR=180;
+const SW_FPS=30;
+let SW_DUR=8, SW_TOTAL=240, SW_SPONSOR=180; // dynamic - updates when video loads
+
+function updateSwDuration(){
+  if(swVideoEl&&swVideoEl.duration){
+    // Use video duration, max 15s, min 6s
+    SW_DUR = Math.min(15, Math.max(6, Math.ceil(swVideoEl.duration)));
+  } else {
+    SW_DUR = 8; // default without video
+  }
+  SW_TOTAL = SW_DUR * SW_FPS;
+  SW_SPONSOR = SW_TOTAL - (2 * SW_FPS); // always last 2 seconds
+  // Update duration display
+  const lbl = document.getElementById('swDurLbl');
+  if(lbl) lbl.textContent = SW_DUR+'s video';
+}
 
 const SW_PAL={bg:'#2a2829',gold:'#b59e60',blue:'#97b4de',cream:'#f0ebe5',sand:'#dcd1bf',cobalt:'#263a99',dark:'#0f0e0e'};
 
@@ -1990,7 +2005,7 @@ document.getElementById('swVideo')?.addEventListener('change',function(e){
   swVideoEl=document.createElement('video');
   swVideoEl.muted=true;swVideoEl.playsInline=true;swVideoEl.loop=false;
   swVideoEl.src=URL.createObjectURL(file);
-  swVideoEl.onloadeddata=()=>swDrawFrame(0);
+  swVideoEl.onloadeddata=()=>{updateSwDuration();swDrawFrame(0);};
 });
 
 function initInstagram(){setTimeout(()=>swDrawFrame(0),100);}
