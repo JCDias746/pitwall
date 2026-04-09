@@ -1114,14 +1114,44 @@ async function runSetupAI(){
   const fSpr=document.getElementById('s-front').value;
   const rSpr=document.getElementById('s-rear').value;
   const historyStr=sessionLog.length?sessionLog.slice(0,8).map(s=>"Date:"+s.date+" Circuit:"+s.circuit+" Conditions:"+s.conditions+" AirTemp:"+s.air_temp+"C TrackTemp:"+s.track_temp+"C Tyre:"+s.tyre+" FPsi:"+s.front_psi+" RPsi:"+s.rear_psi+" Jet:"+s.jet+" Gear:"+s.front_sprocket+"/"+s.rear_sprocket+" BestLap:"+s.best_lap+"s DriverLevel:"+s.driver_pct+"%").join(" | "):"No historical sessions yet.";
-  const prompt="You are a professional kart race engineer for Enrique Dias, 9, Honda Cadet GX200, UK karting. TODAY: Circuit="+circuit+", Air="+airTemp+"C, Track="+trackTemp+"C, Conditions="+conditions+", Wind="+wind+"km/h, Tyres="+tyre+", FPsi="+fPsi+", RPsi="+rPsi+", Jet="+jet+", Gear="+fSpr+"/"+rSpr+". HISTORY: "+historyStr+". Best ever: 44.034s (Apr4, 14C, dry, Dunlop SQ, 8/8.5psi, jet78, gear11/82). Track record GX200: 42.777s. Driver level: 90.5%. Respond JSON: predicted_lap_time, confidence, tyre_recommendation, front_psi, rear_psi, jet_recommendation, gear_recommendation, historical_match, key_focus, engine_note, one_line_summary";
+  // Get track info for this circuit
+  const trackInfo = Object.values(TRACK_INFO).find(t => t.name === circuit) || {};
+  const isNewCircuit = !historyStr.includes(circuit);
+  const circuitLength = trackInfo.length || 'unknown';
+  const circuitCorners = trackInfo.corners || 'unknown';
+  const circuitRecord = trackInfo.record_time && trackInfo.record_time !== 'Unknown' ? trackInfo.record_time : 'TBC';
+  const circuitDescription = trackInfo.description || '';
+  const circuitSetupNotes = trackInfo.setup_notes || '';
+  
+  // Find similar circuits from history for new circuit prediction
+  const similarContext = isNewCircuit ? 
+    "This is Enrique FIRST TIME at "+circuit+". Use circuit characteristics and weather to predict performance. Base time estimate on: circuit length "+circuitLength+"m vs Lydd 892m (best 44.034s), corner count "+circuitCorners+" vs Lydd 7. Scale accordingly." :
+    "Enrique has raced here before. Historical data: "+historyStr;
+  
+  const prompt="You are an elite kart race engineer AND performance coach for Enrique Dias, 9, Honda Cadet GX200, UK. YOUR TWO JOBS: 1) Optimal setup for today 2) Give Enrique a realistic target lap time. "+
+    "CIRCUIT: "+circuit+" | Length: "+circuitLength+"m | Corners: "+circuitCorners+" | Record GX200: "+circuitRecord+"s. "+
+    "CIRCUIT: "+circuitDescription+" SETUP NOTES: "+circuitSetupNotes+". "+
+    "TODAY: Air "+airTemp+"C Track "+trackTemp+"C "+conditions+" Wind "+wind+"km/h. "+
+    "CURRENT SETUP: "+tyre+" Front "+fPsi+"psi Rear "+rPsi+"psi Jet "+jet+" Gear "+fSpr+"/"+rSpr+". "+
+    "ENRIQUE DATA: Best ever 44.034s Lydd (892m, 7 corners, dry, 14C). Theo best 43.008s. Level 90.5% of record. RPM variance 679. "+
+    (isNewCircuit ? "FIRST TIME at this circuit - predict based on circuit length "+circuitLength+"m vs Lydd 892m and corner count "+circuitCorners+" vs Lydd 7 corners." : "HISTORY: "+historyStr)+". "+
+    "Respond JSON: target_lap_time (specific achievable time e.g. 46.5s), target_explanation (why achievable in 1 sentence), performance_level (% of record), confidence (high/medium/low + reason), tyre_recommendation, front_psi, rear_psi, jet_recommendation, gear_recommendation, setup_vs_current (what to change from current), historical_match, session_goal (one clear goal beyond lap time), one_line_brief (energetic line for Enrique before he gets in the kart)";
   try{
     const res=await fetch('https://pitwall-proxy.vercel.app/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:'Professional kart race engineer. JSON only.',messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const a=JSON.parse((data.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
     body.innerHTML=
       '<div style="font-family:Orbitron,monospace;font-size:10px;color:#44d62d;letter-spacing:2px;margin-bottom:12px;">AI SETUP RECOMMENDATION - '+circuit.toUpperCase()+'</div>'+
-      '<div style="background:#0a0a00;border:1px solid #3a2200;border-radius:6px;padding:12px;margin-bottom:14px;border-left:3px solid #ffd700;"><div style="font-size:10px;color:#ffd700;letter-spacing:1px;margin-bottom:4px;">PREDICTED LAP TIME</div><div style="font-family:Orbitron,monospace;font-size:20px;color:#ffd700;font-weight:700;">'+a.predicted_lap_time+'</div><div style="font-size:11px;color:#888;margin-top:4px;">Confidence: '+a.confidence+'</div></div>'+
+      '<div style="background:#0a0a00;border:1px solid #3a2200;border-radius:6px;padding:14px;margin-bottom:14px;border-left:3px solid #ffd700;">' +
+      '<div style="font-size:10px;color:#ffd700;letter-spacing:1px;margin-bottom:6px;">SESSION TARGET</div>' +
+      '<div style="font-family:Orbitron,monospace;font-size:28px;color:#ffd700;font-weight:700;">'+a.target_lap_time+'</div>' +
+      '<div style="font-size:12px;color:#ccc;margin-top:5px;line-height:1.6;">'+a.target_explanation+'</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:4px;">'+a.performance_level+' | Confidence: '+a.confidence+'</div>' +
+      '</div>'+
+      '<div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:6px;padding:12px;margin-bottom:14px;border-left:3px solid #44d62d;">' +
+      '<div style="font-family:Orbitron,monospace;font-size:11px;color:#44d62d;letter-spacing:1px;margin-bottom:5px;">ENRIQUE - GET IN THE KART</div>' +
+      '<div style="font-size:14px;color:#e8e8e8;font-style:italic;">'+a.one_line_brief+'</div>' +
+      '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">'+
       '<div style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:6px;padding:10px;"><div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:4px;">TYRES</div><div style="font-family:Orbitron,monospace;font-size:13px;color:#e8e8e8;">'+a.tyre_recommendation.split(' ')[0]+'</div><div style="font-size:10px;color:#888;margin-top:3px;">F: '+a.front_psi+'psi / R: '+a.rear_psi+'psi</div></div>'+
       '<div style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:6px;padding:10px;"><div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:4px;">JET</div><div style="font-family:Orbitron,monospace;font-size:22px;color:#44d62d;font-weight:700;">'+a.jet_recommendation.split(' ')[0]+'</div></div>'+
@@ -1129,8 +1159,8 @@ async function runSetupAI(){
       '</div>'+
       '<div style="font-size:12px;color:#ccc;line-height:1.8;margin-bottom:10px;"><strong style="color:#888;">Historical match:</strong> '+a.historical_match+'</div>'+
       '<div style="font-size:12px;color:#ccc;line-height:1.8;margin-bottom:10px;"><strong style="color:#888;">Engine note:</strong> '+a.engine_note+'</div>'+
-      '<div style="background:#0a0a0a;border:1px solid #1a3a1a;border-radius:6px;padding:12px;border-left:3px solid #44d62d;"><div style="font-size:10px;color:#44d62d;letter-spacing:1px;margin-bottom:4px;">SESSION FOCUS</div><div style="font-size:13px;color:#e8e8e8;">'+a.key_focus+'</div></div>'+
-      '<div style="margin-top:10px;background:#0a0a00;border:1px solid #2a2200;border-radius:6px;padding:10px;"><div style="font-size:13px;color:#ffd700;font-style:italic;">'+a.one_line_summary+'</div></div>';
+      '<div style="background:#0a0a0a;border:1px solid #1a3a1a;border-radius:6px;padding:12px;border-left:3px solid #44d62d;"><div style="font-size:10px;color:#44d62d;letter-spacing:1px;margin-bottom:4px;">SESSION GOAL</div><div style="font-size:13px;color:#e8e8e8;">'+a.session_goal+'</div></div>'+
+      '<div style="background:#111;border:1px solid #2a1a00;border-radius:6px;padding:10px;margin-top:8px;"><div style="font-size:10px;color:#ffaa00;letter-spacing:1px;margin-bottom:4px;">SETUP CHANGES FROM CURRENT</div><div style="font-size:12px;color:#ccc;">'+a.setup_vs_current+'</div></div>';
   }catch(e){body.innerHTML='AI proxy error - check connection';}
   btn.disabled=false;btn.textContent='GET RECOMMENDATION';
 }
