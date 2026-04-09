@@ -451,7 +451,7 @@ body{display:flex;flex-direction:column;}
         </div>
         <div class="inp-row">
           <label class="inp-lbl">CIRCUIT</label>
-          <select class="inp-select" id="s-circuit" onchange="fetchWeather()">
+          <select class="inp-select" id="s-circuit" onchange="onSetupCircuitChange(this.value)">
             <option value="Lydd Kart Circuit">Lydd</option>
             <option value="Bayford Meadows">Bayford</option>
             <option value="Buckmore Park">Buckmore</option>
@@ -593,6 +593,10 @@ const SESSIONS = [
   }
 ];
 
+// GLOBAL CIRCUIT STATE - shared across all tabs
+let activeCircuitKey = 'LYDD';
+let activeCircuitName = 'Lydd Kart Circuit';
+
 // STATE
 let trackMap=null, coachMap=null;
 let satLayerT, osmLayerT, satLayerC;
@@ -623,7 +627,17 @@ function switchTab(name,el){
     else if(coachMap)setTimeout(()=>coachMap.invalidateSize(),50);
   }
   if(name==='analysis'){renderAnalysis();}
-  if(name==='setup'){renderSessionLog();if(!tabsInit.setup){fetchWeather();tabsInit.setup=true;}}
+  if(name==='setup'){
+    renderSessionLog();
+    // Sync circuit from active track selection
+    const setupCircuit = document.getElementById('s-circuit');
+    if(setupCircuit && activeCircuitName) {
+      const opt = Array.from(setupCircuit.options).find(o => o.value === activeCircuitName);
+      if(opt) { setupCircuit.value = activeCircuitName; }
+    }
+    if(!tabsInit.setup){fetchWeather();tabsInit.setup=true;}
+    else fetchWeather();
+  }
   if(name==='instagram'){renderInstagram();}
 }
 
@@ -993,6 +1007,25 @@ async function runAnalAI(){
 }
 
 // ======================== TAB 4: SETUP ENGINE ========================
+function onSetupCircuitChange(circuitName) {
+  // Sync back to track tab - find the key for this circuit name
+  const key = Object.keys(TRACK_INFO).find(k => TRACK_INFO[k].name === circuitName);
+  if(key) {
+    activeCircuitKey = key;
+    activeCircuitName = circuitName;
+    // Update track tab dropdown
+    const trackSelect = document.getElementById('trackSelect');
+    if(trackSelect) trackSelect.value = key;
+    // Update track map
+    const c = CIRCUITS[key];
+    if(c && trackMap) {
+      trackMap.setView(c.center, c.zoom);
+      drawTrackLines(c.pts, trackMap, trackLayers, trackMarkers, trackOvr);
+    }
+  }
+  fetchWeather();
+}
+
 async function fetchWeather(){
   const circuits={
     'Lydd Kart Circuit':{lat:50.9352,lon:0.9071},
@@ -1368,6 +1401,16 @@ const TRACK_INFO = {
 function onTrackChange(key) {
   const info = TRACK_INFO[key];
   if (!info) return;
+  // Sync global state
+  activeCircuitKey = key;
+  activeCircuitName = info.name;
+  // Sync Setup Engine circuit dropdown
+  const setupCircuit = document.getElementById('s-circuit');
+  if(setupCircuit) {
+    // Find matching option
+    const opt = Array.from(setupCircuit.options).find(o => o.value === info.name || o.text === info.name.split(' ')[0]);
+    if(opt) setupCircuit.value = opt.value;
+  }
   // Update map
   const c = CIRCUITS[key];
   if (c && trackMap) {
