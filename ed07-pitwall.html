@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- v2.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -58,6 +57,15 @@ body{display:flex;flex-direction:column;}
 /* COACHING LAYOUT */
 .coach-layout{display:flex;flex:1;overflow:hidden;min-height:0;}
 .coach-sidebar{width:320px;background:#0a0a0a;border-left:1px solid #1a1a1a;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+@media(max-width:768px){
+  .coach-layout{flex-direction:column;}
+  .coach-sidebar{width:100%;border-left:none;border-top:1px solid #1a1a1a;max-height:55vh;min-height:200px;}
+  #coachMap{min-height:280px;flex:none;}
+  .an-metrics{grid-template-columns:repeat(3,1fr)!important;}
+  .an-two{grid-template-columns:1fr!important;}
+  .setup-grid{grid-template-columns:1fr!important;}
+  .tabs .tab{font-size:9px;padding:12px 4px;letter-spacing:0;}
+}
 .cs-hdr{padding:12px 14px;border-bottom:1px solid #1a1a1a;flex-shrink:0;}
 .cs-title{font-family:'Orbitron',monospace;font-size:11px;color:#44d62d;letter-spacing:2px;}
 .cs-sub{font-size:10px;color:#444;margin-top:3px;}
