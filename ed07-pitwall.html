@@ -1358,7 +1358,7 @@ function gD(a,b){return Math.sqrt((a.lat-b.lat)**2+(a.lon-b.lon)**2);}
 const TRACK_INFO = {
   LYDD: {
     name:'Lydd Kart Circuit', location:'Lydd, Kent', length:892, corners:7,
-    record_class:'Honda Cadet GX200', record_time:'42.777', record_holder:'Jack Cope & Ralphie Branscombe', record_date:'June 2023',
+    record_class:'Honda Cadet GX200 (Dunlop)', record_time:'42.777', record_holder:'Jack Cope & Ralphie Branscombe', record_date:'June 2023', record_verified:true,
     surface:'Tarmac', direction:'Clockwise', indoor:false,
     enrique_best:'44.034', enrique_level:'90.5%',
     description:'Fast and flowing circuit on the Kent coast. Dominated by long straights and a technical infield section. The chicane complex T1-T2 requires a brave flat-out approach. T4 is the hardest braking zone on circuit with no visible reference point.',
@@ -1425,7 +1425,8 @@ function onTrackChange(key) {
     {l:'CORNERS', v:info.corners},
     {l:'DIRECTION', v:info.direction},
     {l:'SURFACE', v:info.surface},
-    {l:'TRACK RECORD', v:info.record_time !== 'Unknown' ? info.record_time+'s' : 'TBC'},
+    {l:'TRACK RECORD', v:info.record_time !== 'Unknown' ? info.record_time+'s'+(info.record_verified?' *':'') : 'TBC'},
+    {l:'RECORD DATE', v:info.record_date !== '--' ? info.record_date : 'Unknown'},
     {l:'RECORD HOLDER', v:info.record_holder !== '-' ? info.record_holder : 'TBC'},
   ];
   if(info.enrique_best) {
