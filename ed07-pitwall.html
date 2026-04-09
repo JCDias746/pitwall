@@ -513,7 +513,7 @@ body{display:flex;flex-direction:column;}
       <div class="sw-ti" id="tpl-data" onclick="setTpl('data',this)">DATA</div>
     </div>
     <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
-      <label style="background:#111;border:1px solid #b59e60;color:#b59e60;font-family:Orbitron,monospace;font-size:10px;font-weight:700;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:1px;">ADD VIDEO<input type="file" id="swVideo" accept="video/*" style="display:none;"></label><span id="swDurLbl" style="font-size:10px;color:#555;letter-spacing:1px;">8s default</span>
+      <label style="background:#111;border:1px solid #b59e60;color:#b59e60;font-family:Orbitron,monospace;font-size:10px;font-weight:700;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:1px;">ADD VIDEO<input type="file" id="swVideo" accept="video/*" style="display:none;"></label><span id="swDurLbl" style="font-size:10px;color:#555;letter-spacing:1px;">20s default</span>
       <button class="run-btn" style="background:#b59e60;color:#2a2829;border:none;" onclick="previewAnim()">PREVIEW</button>
       <button class="run-btn" style="background:#263a99;" onclick="exportVideo()" id="expBtn">EXPORT MP4</button>
     </div>
@@ -1791,29 +1791,29 @@ let swTpl='result',swAnim='slide',swAccent='#b59e60';
 let swFrame=0,swPlaying=false,swRaf=null,swVideoEl=null;
 let swTone_='hype',swLang_='en';
 const SW_FPS=30;
-let SW_DUR=8, SW_TOTAL=240, SW_SPONSOR=180; // dynamic - updates when video loads
+let SW_DUR=20, SW_TOTAL=600, SW_SPONSOR=480; // 20s default, sponsor last 4s // dynamic - updates when video loads
 
 function updateSwDuration(){
   if(swVideoEl&&swVideoEl.duration){
     // Use video duration, max 15s, min 6s
-    SW_DUR = Math.min(15, Math.max(6, Math.ceil(swVideoEl.duration)));
+    SW_DUR = Math.min(30, Math.max(12, Math.ceil(swVideoEl.duration)));
   } else {
     SW_DUR = 8; // default without video
   }
   SW_TOTAL = SW_DUR * SW_FPS;
-  SW_SPONSOR = SW_TOTAL - (2 * SW_FPS); // always last 2 seconds
+  SW_SPONSOR = SW_TOTAL - (4 * SW_FPS); // always last 4 seconds
   // Update duration display
   const lbl = document.getElementById('swDurLbl');
-  if(lbl) lbl.textContent = SW_DUR+'s video';
+  if(lbl) lbl.textContent = SW_DUR+'s';
 }
 
 const SW_PAL={bg:'#2a2829',gold:'#b59e60',blue:'#97b4de',cream:'#f0ebe5',sand:'#dcd1bf',cobalt:'#263a99',dark:'#0f0e0e'};
 
 const SW_TMPL={
-  result:[{t:0,dur:70,type:'headline',text:'SESSION DONE',sub:'LYDD KART CIRCUIT'},{t:70,dur:70,type:'metric',label:'BEST LAP',value:'44.034s'},{t:140,dur:60,type:'level',label:'DRIVER LEVEL',value:'90.5%',sub:'OF TRACK RECORD'}],
-  chase:[{t:0,dur:70,type:'headline',text:'THE CHASE',sub:'SEASON 2026'},{t:70,dur:70,type:'metric',label:'TARGET',value:'42.777s',color:'#f0ebe5'},{t:140,dur:60,type:'gap',label:'GAP TO RECORD',value:'-1.257s'}],
-  reveal:[{t:0,dur:70,type:'headline',text:'PIT WALL',sub:'AI COACHING'},{t:70,dur:70,type:'metric',label:'AI PREDICTED',value:'44.2s',color:'#97b4de'},{t:140,dur:60,type:'metric',label:'DELIVERED',value:'44.034s'}],
-  data:[{t:0,dur:70,type:'headline',text:'DATA DROP',sub:'LYDD KART CIRCUIT'},{t:70,dur:70,type:'sectors',s1:'2.300',s2:'2.947',s3:'1.021',s4:'3.050'},{t:140,dur:60,type:'insight',text:'THE 43s LAP IS ALREADY IN THE DATA'}]
+  result:[{t:0,dur:160,type:'headline',text:'SESSION DONE',sub:'LYDD KART CIRCUIT'},{t:160,dur:160,type:'metric',label:'BEST LAP',value:'44.034s'},{t:320,dur:160,type:'level',label:'DRIVER LEVEL',value:'90.5%',sub:'OF TRACK RECORD'}],
+  chase:[{t:0,dur:160,type:'headline',text:'THE CHASE',sub:'SEASON 2026'},{t:160,dur:160,type:'metric',label:'TARGET',value:'42.777s',color:'#f0ebe5'},{t:320,dur:160,type:'gap',label:'GAP TO RECORD',value:'-1.257s'}],
+  reveal:[{t:0,dur:160,type:'headline',text:'PIT WALL',sub:'AI COACHING'},{t:160,dur:160,type:'metric',label:'AI PREDICTED',value:'44.2s',color:'#97b4de'},{t:320,dur:160,type:'metric',label:'DELIVERED',value:'44.034s'}],
+  data:[{t:0,dur:160,type:'headline',text:'DATA DROP',sub:'LYDD KART CIRCUIT'},{t:160,dur:160,type:'sectors',s1:'2.300',s2:'2.947',s3:'1.021',s4:'3.050'},{t:320,dur:160,type:'insight',text:'THE 43s LAP IS ALREADY IN THE DATA'}]
 };
 
 function swEase(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
