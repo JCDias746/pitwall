@@ -791,7 +791,7 @@ function switchTab(name,el){
     if(!tabsInit.setup){fetchWeather();tabsInit.setup=true;}
     else fetchWeather();
   }
-  if(name==='instagram'){if(!tabsInit.instagram){initSATab();tabsInit.instagram=true;}else{saDrawFrame(saFrame);}}
+  if(name==='instagram'){if(!tabsInit.instagram){setTimeout(()=>{initSATab();tabsInit.instagram=true;},50);}else{setTimeout(()=>saDrawFrame(saFrame),50);}}
 }
 
 // ======================== TAB 1: TRACK MAP ========================
@@ -2111,6 +2111,8 @@ function buildSAEditor() {
   const overlay = document.getElementById('saOverlay');
   if (!overlay) return;
   overlay.innerHTML = '';
+  // Also draw on canvas
+  requestAnimationFrame(() => saDrawFrame(saFrame));
   
   const d = getSAData();
   const tpl = SA_TEMPLATES[saTemplate];
@@ -2324,6 +2326,9 @@ function saGetAnimOffset(frame, totalFrames) {
 function saDrawFrame(f) {
   const canvas = document.getElementById('saCanvas');
   if (!canvas) return;
+  // Ensure canvas has correct dimensions (may be 0 if panel was hidden)
+  if (canvas.width !== 270) canvas.width = 270;
+  if (canvas.height !== 480) canvas.height = 480;
   const ctx = canvas.getContext('2d');
   const W = 270, H = 480;
   
@@ -2550,6 +2555,9 @@ function saPreview() {
   saFrame = 0; saPlaying = true;
   if (saVideo) { saVideo.currentTime = 0; saVideo.play(); }
   
+  // Ensure overlay is hidden during preview so we see canvas clearly
+  const overlay = document.getElementById('saOverlay');
+  
   function loop() {
     if (!saPlaying) return;
     saDrawFrame(saFrame);
@@ -2563,7 +2571,8 @@ function saPreview() {
       saDrawFrame(0);
     }
   }
-  loop();
+  // Small delay to ensure canvas is visible and sized
+  setTimeout(loop, 30);
 }
 
 // ---- EXPORT ----
