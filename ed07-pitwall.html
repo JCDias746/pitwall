@@ -1929,7 +1929,7 @@ let saSelected = null;
 // Session data (live from SESSIONS)
 function getSAData() {
   const s = SESSIONS && SESSIONS[analSessIdx] ? SESSIONS[analSessIdx] : SESSIONS[0];
-  const circuit = CIRCUIT_KEY || 'LYDD';
+  const circuit = (document.getElementById('trackSelect') && document.getElementById('trackSelect').value) || 'LYDD';
   const ti = TRACK_INFO[circuit] || TRACK_INFO.LYDD;
   const pct = driverPct(s.best, s.record, s.beginner);
   const gap = (s.best - parseFloat(s.record)).toFixed(3);
