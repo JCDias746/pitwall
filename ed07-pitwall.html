@@ -7,6 +7,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1980,10 +1983,19 @@ function sa3Logo(img, w, h, invert) {
 function sa3Draw(f) {
   const canvas=document.getElementById('saCanvas');
   if (!canvas) return;
-  if (canvas.width!==270) canvas.width=270;
-  if (canvas.height!==480) canvas.height=480;
-  const ctx=canvas.getContext('2d');
+  // High-DPR rendering - draw at 2x for crisp text
+  const DPR = 2;
   const W=270, H=480;
+  if (canvas.width !== W*DPR) {
+    canvas.width = W*DPR;
+    canvas.height = H*DPR;
+    canvas.style.width = W+'px';
+    canvas.style.height = H+'px';
+  }
+  const ctx=canvas.getContext('2d', {willReadFrequently: false});
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.clearRect(0,0,W,H);
 
   // --- Background ---
@@ -2212,11 +2224,19 @@ async function saExport() {
   const prog=document.getElementById('saExportProg');
   const fill=document.getElementById('saExportFill');
   const lbl=document.getElementById('saExportLbl');
-  const canvas=document.getElementById('saCanvas');
+  // Use a separate export canvas at full Instagram resolution (1080x1920)
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = 1080; exportCanvas.height = 1920;
+  // Temporarily override sa3Draw to use export canvas
+  const realCanvas = document.getElementById('saCanvas');
+  realCanvas.id = 'saCanvas_bak';
+  exportCanvas.id = 'saCanvas';
+  document.body.appendChild(exportCanvas);
+  const canvas = exportCanvas;
   btn.disabled=true; prog.style.display='block';
   sa3LogoCache.clear();
   const mime=MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm';
-  const rec=new MediaRecorder(canvas.captureStream(sa3FPS),{mimeType:mime,videoBitsPerSecond:8000000});
+  const rec=new MediaRecorder(canvas.captureStream(sa3FPS),{mimeType:mime,videoBitsPerSecond:16000000});
   const chunks=[];
   rec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
   rec.onstop=()=>{
@@ -2225,7 +2245,11 @@ async function saExport() {
     a.href=URL.createObjectURL(blob);
     a.download='ED07-'+sa3Tpl+'-'+Date.now()+(mime.includes('mp4')?'.mp4':'.webm');
     a.click(); URL.revokeObjectURL(a.href);
+    // Restore preview canvas
+    exportCanvas.remove();
+    realCanvas.id='saCanvas';
     btn.disabled=false; prog.style.display='none'; fill.style.width='0%';
+    sa3Draw(0);
   };
   rec.start();
   if (sa3Video){sa3Video.currentTime=0;sa3Video.play();}
