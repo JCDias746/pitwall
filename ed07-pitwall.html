@@ -1891,301 +1891,339 @@ function sa_logo(img, w, h, invert) {
 function saRender() {
   const canvas = document.getElementById('saCanvas');
   if (!canvas) return;
+  // Canvas: 540x960 internal, displayed 270x480 CSS = crisp 2x
+  if (canvas.width !== 540) { canvas.width = 540; canvas.height = 960; }
   const ctx = canvas.getContext('2d');
   ctx.save();
-  // Canvas is 540x960 native - draw at full resolution, no scaling
-  ctx.clearRect(0,0,540,960);
 
+  const W = 540, H = 960;
   const d = sa_getData();
   const hasBg = sa_photo !== null;
   const isTransparent = sa_bg === 'transparent';
 
-  // ---- BACKGROUND ----
+  // --- BACKGROUND ---
+  ctx.clearRect(0, 0, W, H);
   if (isTransparent) {
-    // Transparent - nothing behind overlays
-    ctx.clearRect(0,0,SA_W,SA_H);
+    // nothing
   } else if (hasBg) {
-    // Photo bg
-    ctx.drawImage(sa_photo, 0, 0, SA_W, SA_H);
-    // Dark overlay
-    const opacity = parseInt(document.getElementById('saOpacity')?.value || 60) / 100;
-    ctx.fillStyle = `rgba(0,0,0,${opacity})`;
-    ctx.fillRect(0,0,SA_W,SA_H);
+    ctx.drawImage(sa_photo, 0, 0, W, H);
+    const opa = (parseInt(document.getElementById('saOpacity')?.value || 60)) / 100;
+    ctx.fillStyle = `rgba(0,0,0,${opa})`;
+    ctx.fillRect(0, 0, W, H);
   } else {
-    // Solid black
     ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,SA_W,SA_H);
-    // Subtle grid
-    ctx.strokeStyle = 'rgba(68,216,45,0.035)';
-    ctx.lineWidth = 0.5;
-    for(let y=0;y<SA_H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(SA_W,y);ctx.stroke();}
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(68,216,45,0.04)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < H; y += 80) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
   }
 
-  // ---- BORDER LINES ----
+  // --- BORDER ---
   ctx.fillStyle = '#44d82d';
-  ctx.fillRect(0,0,SA_W,6);       // top
-  ctx.fillRect(0,SA_H-6,SA_W,6);  // bottom
+  ctx.fillRect(0, 0, W, 6);
+  ctx.fillRect(0, H-6, W, 6);
   ctx.fillStyle = '#288319';
-  ctx.fillRect(0,0,6,SA_H);       // left
-  ctx.fillRect(SA_W-6,0,6,SA_H);  // right
+  ctx.fillRect(0, 0, 6, H);
+  ctx.fillRect(W-6, 0, 6, H);
 
-  // ---- TOP BADGE ----
-  const ed07logo = sa_logo(SA_ED07, 80, 80, false);
-  if (ed07logo) ctx.drawImage(ed07logo, 16, 12, 80, 80);
-  ctx.font = '900 28px Orbitron, monospace';
+  // --- ZONE 1: HEADER (y: 0-120) ---
+  // ED07 text badge top-left
+  ctx.font = '900 36px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
   ctx.textAlign = 'left';
-  ctx.fillText('ED07', 108, 44);
-  ctx.font = '600 14px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('PIT WALL', 108, 64);
-  ctx.font = '600 14px Share Tech Mono, monospace';
+  ctx.fillText('ED07', 24, 56);
+  ctx.font = '400 16px Share Tech Mono, monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('PIT WALL', 24, 78);
+  // Date top-right
+  ctx.font = '400 15px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.textAlign = 'right';
-  ctx.fillText(d.date, SA_W-20, 36);
+  ctx.fillText(d.date, W-24, 50);
   ctx.textAlign = 'left';
 
-  // ---- TEMPLATE CONTENT ----
-  if (sa_tpl === 'RESULT') sa_drawResult(ctx, d);
-  else if (sa_tpl === 'CHASE') sa_drawChase(ctx, d);
-  else if (sa_tpl === 'DATA') sa_drawData(ctx, d);
-  else if (sa_tpl === 'REVEAL') sa_drawReveal(ctx, d);
+  // --- ZONE 2: TEMPLATE CONTENT (y: 120-700) ---
+  if (sa_tpl === 'RESULT') sa_drawResult(ctx, d, W, H);
+  else if (sa_tpl === 'CHASE') sa_drawChase(ctx, d, W, H);
+  else if (sa_tpl === 'DATA') sa_drawData(ctx, d, W, H);
+  else if (sa_tpl === 'REVEAL') sa_drawReveal(ctx, d, W, H);
 
-  // ---- SPONSOR SECTION ----
-  sa_drawSponsor(ctx, d);
+  // --- ZONE 3: SPONSOR (y: 720-920) ---
+  sa_drawSponsor(ctx, d, W, H);
 
-  // ---- BOTTOM ----
-  ctx.font = '600 14px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  // --- ZONE 4: FOOTER (y: 920-960) ---
+  ctx.font = '400 14px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.textAlign = 'center';
-  ctx.fillText('ENRIQUE DIAS - HONDA CADET 200', SA_W/2, SA_H-16);
-  ctx.textAlign = 'left';
+  ctx.fillText('ENRIQUE DIAS  -  HONDA CADET 200', W/2, H-18);
 
   ctx.restore();
 }
 
-// ---- TEMPLATE DRAWERS ----
-function sa_drawResult(ctx, d) {
-  const cy = SA_H/2 - 40;
+function sa_drawResult(ctx, d, W, H) {
+  // Content zone: y 120 to 720
+  const midY = 420;
 
-  // Circuit label
-  ctx.font = '700 8px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  // Circuit name
+  ctx.font = '400 18px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
   ctx.textAlign = 'center';
-  ctx.fillText(d.circuit, SA_W/2, cy - 30);
+  ctx.fillText(d.circuit, W/2, 168);
 
   // BEST LAP label
-  ctx.font = '700 10px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.letterSpacing = '3px';
-  ctx.fillText('BEST LAP', SA_W/2, cy - 12);
+  ctx.font = '700 20px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.letterSpacing = '8px';
+  ctx.fillText('BEST LAP', W/2, 212);
   ctx.letterSpacing = '0px';
 
-  // Main time - BIG
-  ctx.font = '900 64px Orbitron, monospace';
+  // Main time - fit to 480px width
+  const timeStr = d.best + 's';
+  let sz = 128;
+  ctx.font = `900 ${sz}px Orbitron, monospace`;
+  while (ctx.measureText(timeStr).width > 480 && sz > 72) {
+    sz -= 6;
+    ctx.font = `900 ${sz}px Orbitron, monospace`;
+  }
   ctx.fillStyle = '#44d82d';
   ctx.shadowColor = '#44d82d';
-  ctx.shadowBlur = 24;
-  ctx.fillText(d.best+'s', SA_W/2, cy + 52);
+  ctx.shadowBlur = 32;
+  ctx.fillText(timeStr, W/2, 340);
   ctx.shadowBlur = 0;
 
-  // Divider
+  // Thin divider
   ctx.strokeStyle = 'rgba(68,216,45,0.2)';
-  ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(30,cy+66); ctx.lineTo(SA_W-30,cy+66); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 368); ctx.lineTo(W-80, 368); ctx.stroke();
 
-  // Level + Gap row
-  ctx.font = '700 13px Orbitron, monospace';
-  ctx.fillStyle = '#288319';
-  ctx.fillText(d.level+'%', SA_W/2 - 36, cy+86);
-  ctx.font = '700 8px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('LEVEL', SA_W/2 - 36, cy+98);
+  // Level | Gap
+  ctx.textAlign = 'center';
+  // Left: Level
+  ctx.font = '700 28px Orbitron, monospace';
+  ctx.fillStyle = '#44d82d';
+  ctx.fillText(d.level + '%', W/2 - 100, 420);
+  ctx.font = '400 15px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillText('LEVEL', W/2 - 100, 444);
 
-  ctx.font = '700 13px Orbitron, monospace';
+  // Divider between
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W/2, 398); ctx.lineTo(W/2, 454); ctx.stroke();
+
+  // Right: Gap
+  ctx.font = '700 28px Orbitron, monospace';
   ctx.fillStyle = 'rgba(151,180,222,0.9)';
-  ctx.textAlign = 'right';
-  ctx.fillText(d.gap+'s', SA_W/2 + 36, cy+86);
-  ctx.font = '700 8px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('GAP TO REC', SA_W/2 + 36, cy+98);
+  ctx.fillText(d.gap + 's', W/2 + 100, 420);
+  ctx.font = '400 15px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillText('GAP', W/2 + 100, 444);
+
   ctx.textAlign = 'left';
 }
 
-function sa_drawChase(ctx, d) {
-  const cy = SA_H/2 - 90;
+function sa_drawChase(ctx, d, W, H) {
   ctx.textAlign = 'center';
 
-  ctx.font = '900 56px Orbitron, monospace';
+  ctx.font = '900 64px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
   ctx.shadowColor = '#44d82d';
-  ctx.shadowBlur = 36;
-  ctx.fillText('THE CHASE', SA_W/2, cy);
+  ctx.shadowBlur = 32;
+  ctx.fillText('THE CHASE', W/2, 220);
   ctx.shadowBlur = 0;
 
-  ctx.font = '700 16px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.fillText('SEASON 2026', SA_W/2, cy+28);
+  ctx.font = '400 18px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.fillText('SEASON 2026', W/2, 252);
 
   ctx.strokeStyle = 'rgba(68,216,45,0.15)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(80,cy+48); ctx.lineTo(SA_W-80,cy+48); ctx.stroke();
-
-  ctx.font = '700 18px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.letterSpacing = '4px';
-  ctx.fillText('TRACK RECORD', SA_W/2, cy+84);
-  ctx.letterSpacing = '0px';
-  ctx.font = '900 100px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillText(d.record+'s', SA_W/2, cy+192);
+  ctx.beginPath(); ctx.moveTo(100, 278); ctx.lineTo(W-100, 278); ctx.stroke();
 
   ctx.font = '700 18px Orbitron, monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.letterSpacing = '4px';
-  ctx.fillText('GAP TO CLOSE', SA_W/2, cy+232);
+  ctx.fillText('TRACK RECORD', W/2, 320);
   ctx.letterSpacing = '0px';
-  ctx.font = '700 44px Orbitron, monospace';
+
+  ctx.font = '900 100px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.fillText(d.record + 's', W/2, 432);
+
+  ctx.strokeStyle = 'rgba(68,216,45,0.15)';
+  ctx.beginPath(); ctx.moveTo(100, 460); ctx.lineTo(W-100, 460); ctx.stroke();
+
+  ctx.font = '700 18px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.letterSpacing = '4px';
+  ctx.fillText('GAP TO CLOSE', W/2, 502);
+  ctx.letterSpacing = '0px';
+
+  ctx.font = '700 52px Orbitron, monospace';
   ctx.fillStyle = '#288319';
-  ctx.fillText(d.gap+'s', SA_W/2, cy+280);
+  ctx.fillText(d.gap + 's', W/2, 562);
+
   ctx.textAlign = 'left';
 }
 
-function sa_drawData(ctx, d) {
+function sa_drawData(ctx, d, W, H) {
   const s = SESSIONS[analSessIdx] || SESSIONS[0];
-  const cy = SA_H/2 - 60;
-
   ctx.textAlign = 'center';
-  ctx.font = '900 40px Orbitron, monospace';
+
+  ctx.font = '900 44px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
   ctx.shadowColor = '#44d82d';
-  ctx.shadowBlur = 32;
-  ctx.fillText('DATA DROP', SA_W/2, cy);
+  ctx.shadowBlur = 24;
+  ctx.fillText('DATA DROP', W/2, 202);
   ctx.shadowBlur = 0;
-  ctx.font = '700 14px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.fillText(d.circuit, SA_W/2, cy+28);
 
-  // Sector boxes
+  ctx.font = '400 15px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.fillText(d.circuit, W/2, 228);
+
   const sectors = [
-    {label:'S1', val:s.splits_best?.s1?.toFixed(3)+'s' || '2.300s', color:'#44d82d', x:SA_W/2-120, y:cy+60},
-    {label:'S2', val:s.splits_best?.s2?.toFixed(3)+'s' || '2.947s', color:'#97b4de', x:SA_W/2+120, y:cy+60},
-    {label:'S3', val:s.splits_best?.s3?.toFixed(3)+'s' || '1.021s', color:'#44d82d', x:SA_W/2-120, y:cy+176},
-    {label:'S4', val:s.splits_best?.s4?.toFixed(3)+'s' || '3.050s', color:'#97b4de', x:SA_W/2+120, y:cy+176},
+    {label:'S1', val: s.splits_best?.s1 ? s.splits_best.s1.toFixed(3)+'s' : '2.300s', color:'#44d82d',  x:W/2-130, y:290},
+    {label:'S2', val: s.splits_best?.s2 ? s.splits_best.s2.toFixed(3)+'s' : '2.947s', color:'#97b4de', x:W/2+130, y:290},
+    {label:'S3', val: s.splits_best?.s3 ? s.splits_best.s3.toFixed(3)+'s' : '1.021s', color:'#44d82d',  x:W/2-130, y:430},
+    {label:'S4', val: s.splits_best?.s4 ? s.splits_best.s4.toFixed(3)+'s' : '3.050s', color:'#97b4de', x:W/2+130, y:430},
   ];
+
   sectors.forEach(sec => {
-    ctx.strokeStyle = sec.color;
+    ctx.strokeStyle = sec.color + '88';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(sec.x-68, sec.y-20, 136, 88);
+    ctx.strokeRect(sec.x - 100, sec.y - 30, 200, 100);
     ctx.font = '700 18px Orbitron, monospace';
     ctx.fillStyle = sec.color;
-    ctx.fillText(sec.label, sec.x, sec.y+12);
+    ctx.fillText(sec.label, sec.x, sec.y + 2);
     ctx.font = '900 32px Orbitron, monospace';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(sec.val, sec.x, sec.y+56);
+    ctx.fillText(sec.val, sec.x, sec.y + 50);
   });
 
   ctx.strokeStyle = 'rgba(68,216,45,0.15)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(40,cy+296); ctx.lineTo(SA_W-40,cy+296); ctx.stroke();
-  ctx.font = '700 16px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('THEORETICAL BEST', SA_W/2, cy+324);
-  ctx.font = '700 36px Orbitron, monospace';
+  ctx.beginPath(); ctx.moveTo(60, 552); ctx.lineTo(W-60, 552); ctx.stroke();
+  ctx.font = '400 16px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillText('THEORETICAL BEST', W/2, 584);
+  ctx.font = '700 40px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
-  ctx.fillText('43.008s', SA_W/2, cy+360);
+  ctx.fillText('43.008s', W/2, 632);
+
   ctx.textAlign = 'left';
 }
 
-function sa_drawReveal(ctx, d) {
-  const cy = SA_H/2 - 50;
+function sa_drawReveal(ctx, d, W, H) {
   ctx.textAlign = 'center';
 
-  ctx.font = '900 40px Orbitron, monospace';
+  ctx.font = '900 48px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
   ctx.shadowColor = '#44d82d';
-  ctx.shadowBlur = 32;
-  ctx.fillText('PIT WALL', SA_W/2, cy);
+  ctx.shadowBlur = 28;
+  ctx.fillText('PIT WALL', W/2, 210);
   ctx.shadowBlur = 0;
-  ctx.font = '700 14px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+
+  ctx.font = '400 14px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
   ctx.letterSpacing = '4px';
-  ctx.fillText('AI-POWERED COACHING', SA_W/2, cy+14);
+  ctx.fillText('AI-POWERED COACHING', W/2, 240);
   ctx.letterSpacing = '0px';
 
   ctx.strokeStyle = 'rgba(68,216,45,0.15)';
-  ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(30,cy+26); ctx.lineTo(SA_W-30,cy+26); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 266); ctx.lineTo(W-80, 266); ctx.stroke();
 
-  ctx.font = '700 18px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText('AI PREDICTED', SA_W/2, cy+44);
-  ctx.font = '700 64px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(151,180,222,0.9)';
-  ctx.fillText('44.2s', SA_W/2, cy+80);
+  ctx.font = '400 18px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.fillText('AI PREDICTED', W/2, 312);
 
-  ctx.beginPath(); ctx.moveTo(30,cy+92); ctx.lineTo(SA_W-30,cy+92); ctx.stroke();
+  ctx.font = '700 72px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(151,180,222,0.88)';
+  ctx.fillText('44.2s', W/2, 396);
 
-  ctx.font = '700 18px Share Tech Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText('DELIVERED', SA_W/2, cy+110);
+  ctx.strokeStyle = 'rgba(68,216,45,0.15)';
+  ctx.beginPath(); ctx.moveTo(80, 428); ctx.lineTo(W-80, 428); ctx.stroke();
+
+  ctx.font = '400 18px Share Tech Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.fillText('DELIVERED', W/2, 474);
+
   ctx.font = '900 96px Orbitron, monospace';
   ctx.fillStyle = '#44d82d';
   ctx.shadowColor = '#44d82d';
-  ctx.shadowBlur = 40;
-  ctx.fillText(d.best+'s', SA_W/2, cy+158);
+  ctx.shadowBlur = 36;
+  ctx.fillText(d.best + 's', W/2, 582);
   ctx.shadowBlur = 0;
+
   ctx.textAlign = 'left';
 }
 
-function sa_drawSponsor(ctx, d) {
-  const sponsorY = SA_H - 216;
+function sa_drawSponsor(ctx, d, W, H) {
   const invertCb = document.getElementById('saInvertLogo');
   const shouldInvert = invertCb && invertCb.checked;
-  const hasSponsor = sa_sponsorImg !== null;
+  const logoSrc = (sa_sponsorImg !== null) ? sa_sponsorImg : SA_JCDIAS;
 
-  // Divider above sponsor
-  ctx.strokeStyle = 'rgba(68,216,45,0.18)';
+  // Thin divider
+  ctx.strokeStyle = 'rgba(68,216,45,0.2)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(40, sponsorY-8); ctx.lineTo(SA_W-40, sponsorY-8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(40, 716); ctx.lineTo(W-40, 716); ctx.stroke();
 
   // POWERED BY
-  ctx.font = '700 14px Orbitron, monospace';
+  ctx.font = '700 15px Orbitron, monospace';
   ctx.fillStyle = 'rgba(68,216,45,0.5)';
   ctx.textAlign = 'center';
-  ctx.letterSpacing = '6px';
-  ctx.fillText('POWERED BY', SA_W/2, sponsorY+20);
+  ctx.letterSpacing = '5px';
+  ctx.fillText('POWERED BY', W/2, 748);
   ctx.letterSpacing = '0px';
 
   // Sponsor name
-  ctx.font = '900 24px Orbitron, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillText(saSponsorName_, SA_W/2, sponsorY+52);
+  if (saSponsorName_) {
+    ctx.font = '900 26px Orbitron, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillText(saSponsorName_, W/2, 784);
+  }
 
-  // Sponsor logo - high quality at native size
-  const logoSrc = hasSponsor ? sa_sponsorImg : SA_JCDIAS;
-  // Draw at source natural size scaled to fit max 280x80
-  const maxLogoW = 280, maxLogoH = 80;
-  const imgW = logoSrc.naturalWidth || logoSrc.width || 400;
-  const imgH = logoSrc.naturalHeight || logoSrc.height || 200;
-  const ratio = Math.min(maxLogoW/imgW, maxLogoH/imgH);
-  const lw = imgW*ratio, lh = imgH*ratio;
-  // Create clean logo
-  const logoCanvas = document.createElement('canvas');
-  logoCanvas.width = Math.round(lw*2); logoCanvas.height = Math.round(lh*2);
-  const lctx = logoCanvas.getContext('2d');
-  if (shouldInvert) lctx.filter = 'invert(1)';
-  lctx.drawImage(logoSrc, 0, 0, Math.round(lw*2), Math.round(lh*2));
-  lctx.filter = 'none';
-  // Remove black bg
-  const id = lctx.getImageData(0,0,Math.round(lw*2),Math.round(lh*2));
-  for(let i=0;i<id.data.length;i+=4){if((id.data[i]+id.data[i+1]+id.data[i+2])/3<40)id.data[i+3]=0;}
-  lctx.putImageData(id,0,0);
-  ctx.drawImage(logoCanvas, SA_W/2-lw/2, sponsorY+62, lw, lh);
+  // Logo - max 280x72, centred between y=796 and y=880
+  if (logoSrc && logoSrc.complete && logoSrc.naturalWidth > 0) {
+    const maxW = 280, maxH = 72;
+    const ratio = Math.min(maxW / logoSrc.naturalWidth, maxH / logoSrc.naturalHeight);
+    const lw = logoSrc.naturalWidth * ratio;
+    const lh = logoSrc.naturalHeight * ratio;
+    const lx = W/2 - lw/2;
+    const ly = 800;
 
-  // TL07 badge bottom right
-  const badge = sa_logo(SA_TL_BADGE, 48, 48, false);
-  if (badge) ctx.drawImage(badge, SA_W-68, SA_H-76, 48, 48);
+    // High quality offscreen canvas
+    const oc = document.createElement('canvas');
+    oc.width = Math.round(lw * 2); oc.height = Math.round(lh * 2);
+    const oc2 = oc.getContext('2d');
+    oc2.imageSmoothingEnabled = true;
+    oc2.imageSmoothingQuality = 'high';
+    if (shouldInvert) oc2.filter = 'invert(1)';
+    oc2.drawImage(logoSrc, 0, 0, oc.width, oc.height);
+    oc2.filter = 'none';
+    // Strip black bg
+    const id = oc2.getImageData(0, 0, oc.width, oc.height);
+    for (let i = 0; i < id.data.length; i += 4) {
+      if ((id.data[i] + id.data[i+1] + id.data[i+2]) / 3 < 40) id.data[i+3] = 0;
+    }
+    oc2.putImageData(id, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(oc, lx, ly, lw, lh);
+  }
+
+  // TL07 badge - bottom right corner
+  if (SA_TL_BADGE.complete && SA_TL_BADGE.naturalWidth > 0) {
+    const bs = 52;
+    const bc = document.createElement('canvas');
+    bc.width = bs*2; bc.height = bs*2;
+    const bc2 = bc.getContext('2d');
+    bc2.drawImage(SA_TL_BADGE, 0, 0, bs*2, bs*2);
+    const bid = bc2.getImageData(0,0,bs*2,bs*2);
+    for(let i=0;i<bid.data.length;i+=4){if((bid.data[i]+bid.data[i+1]+bid.data[i+2])/3<40)bid.data[i+3]=0;}
+    bc2.putImageData(bid,0,0);
+    ctx.drawImage(bc, W-80, H-90, bs, bs);
+  }
 
   ctx.textAlign = 'left';
 }
