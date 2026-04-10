@@ -623,7 +623,8 @@ body{display:flex;flex-direction:column;}
 
       <!-- Sponsor -->
       <div style="padding:12px;border-bottom:1px solid #1a1a1a;">
-        <div style="font-family:Orbitron,monospace;font-size:9px;color:#444;letter-spacing:2px;margin-bottom:8px;">SPONSOR - END CARD</div>
+        <div style="font-family:Orbitron,monospace;font-size:9px;color:#444;letter-spacing:2px;margin-bottom:4px;">SPONSOR - END CARD</div>
+        <div style="font-size:9px;color:#2a2a2a;margin-bottom:8px;line-height:1.6;">Saved automatically. Persists between sessions.</div>
 
         <!-- Sponsor preview box -->
         <div id="saSponsorBox" style="background:#0a0a0a;border:1px solid #1a1a1a;border-radius:6px;padding:12px;margin-bottom:8px;text-align:center;min-height:60px;display:flex;align-items:center;justify-content:center;">
@@ -2002,6 +2003,29 @@ const SA_TL_BADGE = new Image(); SA_TL_BADGE.src  = 'data:image/png;base64,/9j/4
 
 // ---- INIT ----
 function initSATab() {
+  // Restore sponsor from localStorage
+  try {
+    const savedData = localStorage.getItem('sa_sponsor_data');
+    const savedName = localStorage.getItem('sa_sponsor_name');
+    if (savedData) {
+      const img = new Image();
+      img.onload = () => {
+        saSponsorImg = img;
+        const preview = document.getElementById('saSponsorPreview');
+        const empty = document.getElementById('saSponsorEmpty');
+        if (preview) { preview.src = savedData; preview.style.display = 'block'; }
+        if (empty) empty.style.display = 'none';
+        saDrawFrame(0);
+      };
+      img.src = savedData;
+    }
+    if (savedName) {
+      saSponsorName = savedName;
+      const nameInput = document.getElementById('saSponsorName');
+      if (nameInput) nameInput.value = savedName;
+    }
+  } catch(ex) {}
+
   // Wire tone buttons
   document.querySelectorAll('[data-sa-tone]').forEach(b => {
     b.addEventListener('click', () => {
@@ -2216,6 +2240,11 @@ function saLoadSponsor(input) {
     const img = new Image();
     img.onload = () => {
       saSponsorImg = img;
+      // Save to localStorage for persistence
+      try {
+        localStorage.setItem('sa_sponsor_data', e.target.result);
+        localStorage.setItem('sa_sponsor_name', saSponsorName);
+      } catch(ex) {}
       // Update preview
       const preview = document.getElementById('saSponsorPreview');
       const empty = document.getElementById('saSponsorEmpty');
@@ -2233,12 +2262,14 @@ function saLoadSponsor(input) {
 
 function saSponsorNameChange(val) {
   saSponsorName = val.toUpperCase();
+  try { localStorage.setItem('sa_sponsor_name', saSponsorName); } catch(ex) {}
   saDrawFrame(saFrame);
 }
 
 function saRemoveSponsor() {
   saSponsorImg = null;
   saSponsorName = '';
+  try { localStorage.removeItem('sa_sponsor_data'); localStorage.removeItem('sa_sponsor_name'); } catch(ex) {}
   document.getElementById('saSponsorPreview').style.display = 'none';
   document.getElementById('saSponsorEmpty').style.display = 'block';
   document.getElementById('saSponsorInput').value = '';
